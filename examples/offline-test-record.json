@@ -1,0 +1,22 @@
+{
+  "record_kind": "blank_template_not_evidence",
+  "status": "not_performed",
+  "test_date": null,
+  "timezone": null,
+  "duration_minutes": null,
+  "service_and_version": null,
+  "client_type_app_and_version": null,
+  "wan_failure_or_isolation_method": null,
+  "alternate_internet_access_checked": null,
+  "lan_nas_dns_and_power_conditions": null,
+  "service_url_type_without_real_address": null,
+  "existing_session_or_fresh_login": null,
+  "cached_or_newly_selected_content": null,
+  "content_storage_location_role": null,
+  "direct_play_or_transcoding": null,
+  "simultaneous_client_count": null,
+  "restart_conditions": null,
+  "action_and_observed_result": null,
+  "failures_and_recovery": null,
+  "sanitized_evidence_reference": null
+}

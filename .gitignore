@@ -1,0 +1,35 @@
+# Local evidence and working material
+private/
+raw/
+captures/
+*.log
+*.zip
+*.tar
+*.tar.gz
+*.sql
+*.sql.gz
+*.dump
+*.bak
+tmp-outputs*
+mac-mini-inventory.txt
+
+# Credentials and environment-specific configuration
+.env
+.env.*
+!.env.example
+secrets/
+credentials/
+*.pem
+*.key
+*.p12
+*.pfx
+wg*.conf
+id_rsa*
+id_ed25519*
+
+# Local tooling
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+node_modules/
