@@ -1,0 +1,1124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Offline-First Homelab — A small cloud. At home.</title>
+<meta name="description" content="An interactive architectural case study of a real, self-hosted, offline-first homelab.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: dark;
+  --bg:#0c1316; --bg2:#0f181c; --panel:rgba(19,30,35,.78); --solid:#121c21; --raise:#16232a;
+  --line:#1e2d34; --line2:#2b3f48; --text:#e3ecee; --muted:#8fa2a9; --faint:#5f737a;
+  --cyan:#56d5e6; --teal:#3ea596; --green:#9bd8a2; --amber:#e3b462; --rose:#e48a79;
+  --grid:rgba(86,213,230,.045); --glow:rgba(86,213,230,.16); --shadow:0 24px 60px -30px rgba(0,0,0,.7);
+  --display:"Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --sans:"Hanken Grotesk", "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    color-scheme: light;
+    --bg:#eef3f3; --bg2:#e6eded; --panel:rgba(255,255,255,.82); --solid:#ffffff; --raise:#f4f8f8;
+    --line:#d4dfe0; --line2:#b9c9cc; --text:#0f1c21; --muted:#4c5f66; --faint:#7c8d93;
+    --cyan:#08869a; --teal:#1d776c; --green:#2d8344; --amber:#a26706; --rose:#b0483a;
+    --grid:rgba(8,134,154,.06); --glow:rgba(8,134,154,.12); --shadow:0 24px 60px -34px rgba(20,40,50,.35);
+  }
+}
+:root[data-theme="light"]{
+  color-scheme: light;
+  --bg:#eef3f3; --bg2:#e6eded; --panel:rgba(255,255,255,.82); --solid:#ffffff; --raise:#f4f8f8;
+  --line:#d4dfe0; --line2:#b9c9cc; --text:#0f1c21; --muted:#4c5f66; --faint:#7c8d93;
+  --cyan:#08869a; --teal:#1d776c; --green:#2d8344; --amber:#a26706; --rose:#b0483a;
+  --grid:rgba(8,134,154,.06); --glow:rgba(8,134,154,.12); --shadow:0 24px 60px -34px rgba(20,40,50,.35);
+}
+:root[data-theme="dark"]{ color-scheme: dark; }
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-behavior:smooth; scroll-padding-top:calc(72px + env(safe-area-inset-top,0px)); height:auto}
+body{
+  margin:0; background:var(--bg); color:var(--text); font-family:var(--sans); font-size:17px; line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size:56px 56px; background-position:-1px -1px;
+}
+body::before{content:""; position:fixed; inset:0 0 auto; height:env(safe-area-inset-top,0px); z-index:60; background:var(--bg)}
+img,svg{max-width:100%}
+.sim > *, .flows > *, .hero .wrap > *, .sh > *{min-width:0}
+body{overflow-x:clip}
+a{color:var(--cyan)}
+:focus-visible{outline:2px solid var(--cyan); outline-offset:3px; border-radius:6px}
+.wrap{width:min(1180px, 100% - 48px); margin-inline:auto}
+.mono{font-family:var(--mono); font-size:.86em; letter-spacing:-.01em}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* nav */
+.nav{position:sticky; top:env(safe-area-inset-top,0px); z-index:50; backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  background:color-mix(in srgb, var(--bg) 80%, transparent); border-bottom:1px solid var(--line)}
+.nav .wrap{display:flex; align-items:center; gap:24px; height:60px}
+.brand{display:flex; align-items:center; gap:10px; color:var(--text); text-decoration:none; font-family:var(--display); font-weight:600; font-size:16px; white-space:nowrap}
+.brand svg{color:var(--cyan)}
+.nav nav{display:flex; gap:4px; overflow-x:auto; scrollbar-width:none; flex:1; justify-content:center}
+.nav nav::-webkit-scrollbar{display:none}
+.nav nav a{color:var(--muted); text-decoration:none; font-size:14px; padding:6px 10px; border-radius:8px; white-space:nowrap}
+.nav nav a:hover,.nav nav a.on{color:var(--text); background:var(--raise)}
+.navgh{display:flex; align-items:center; gap:8px; color:var(--muted); text-decoration:none; font-size:14px; white-space:nowrap}
+.navgh:hover{color:var(--text)}
+@media (max-width:860px){ .nav nav{display:none} .nav .wrap{justify-content:space-between} }
+
+/* buttons */
+.btn{display:inline-flex; align-items:center; gap:10px; font:600 15px/1 var(--sans); padding:14px 20px; border-radius:12px; text-decoration:none; cursor:pointer; border:1px solid var(--line2); color:var(--text); background:transparent; transition:background .2s, border-color .2s, transform .2s}
+.btn:hover{border-color:var(--cyan)}
+.btn.primary{background:var(--cyan); color:#05181c; border-color:var(--cyan)}
+.btn.primary:hover{background:color-mix(in srgb, var(--cyan) 85%, white); transform:translateY(-1px)}
+
+/* hero */
+.hero{position:relative; padding:88px 0 72px; overflow:hidden}
+.hero .wrap{display:grid; grid-template-columns:1.05fr .95fr; gap:40px; align-items:center}
+.tagline{font-family:var(--display); font-size:18px; color:var(--teal); margin:0 0 18px; font-weight:500}
+h1{font-family:var(--display); font-weight:700; font-size:clamp(52px, 8.4vw, 112px); line-height:.92; letter-spacing:-.035em; margin:0 0 28px; font-variation-settings:"opsz" 96}
+h1 span{display:block}
+h1 span + span{color:var(--muted); font-weight:400}
+.lede{font-size:19px; color:var(--muted); max-width:34em; margin:0 0 36px}
+.actions{display:flex; flex-wrap:wrap; gap:12px}
+.provenance{margin:40px 0 0; font-size:14px; color:var(--faint); max-width:40em; padding-left:14px; border-left:2px solid var(--line2)}
+.hero-vis > svg{width:100%; height:auto; overflow:visible}
+@media (max-width:900px){ .hero .wrap{grid-template-columns:1fr} .hero-vis{max-width:520px; margin:0 auto} .hero{padding-top:56px} }
+
+/* hero svg */
+.hv-ring{fill:none; stroke:var(--line2); stroke-dasharray:3 9}
+.hv-ring.spin{transform-origin:260px 250px; animation:spin 120s linear infinite}
+.hv-link{fill:none; stroke:var(--line2); stroke-width:1.5}
+.hv-pkt{fill:none; stroke:var(--cyan); stroke-width:2.2; stroke-linecap:round; stroke-dasharray:2 22; animation:dash 1.6s linear infinite}
+.hv-pkt.slow{animation-duration:2.6s; stroke:var(--teal)}
+.hv-node > rect{fill:var(--solid); stroke:var(--line2)}
+.hv-node.core > rect{stroke:var(--cyan); stroke-width:1.5}
+.hv-node .ico{color:var(--cyan)}
+.hv-lbl{font:600 17px var(--display); fill:var(--text)}
+.hv-sub{font:400 12.5px var(--sans); fill:var(--muted)}
+.hv-dot{fill:var(--faint)}
+.hv-pulse{fill:none; stroke:var(--cyan); opacity:0; transform-origin:260px 168px; animation:pulse 3.2s ease-out 0.4s 3}
+@keyframes pulse{0%{opacity:.5; transform:scale(.5)}100%{opacity:0; transform:scale(2.4)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes dash{to{stroke-dashoffset:-24}}
+
+/* sections */
+section.block{padding:112px 0 40px; scroll-margin-top:60px}
+.sh{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:48px; align-items:end; margin-bottom:44px}
+.sh h2{font-family:var(--display); font-weight:600; font-size:clamp(34px, 4.6vw, 56px); line-height:1.02; letter-spacing:-.025em; margin:0}
+.sh p{margin:0; color:var(--muted); max-width:36em}
+.kicker{display:flex; align-items:center; gap:10px; color:var(--teal); font-size:15px; margin-bottom:14px}
+.kicker::before{content:""; width:28px; height:1px; background:currentColor}
+@media (max-width:860px){ .sh{grid-template-columns:1fr; gap:18px} section.block{padding-top:84px} }
+
+.panel{background:var(--panel); border:1px solid var(--line); border-radius:20px; box-shadow:var(--shadow); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px)}
+
+/* evidence badges */
+.ev{display:inline-flex; align-items:center; gap:7px; font-size:12.5px; line-height:1; padding:6px 10px 6px 9px; border-radius:999px; border:1px solid var(--line2); color:var(--muted); white-space:nowrap; background:var(--bg2)}
+.ev i{width:16px; height:0; border-top:2px solid currentColor; display:inline-block}
+.ev.obs{color:var(--cyan)} .ev.obs i{border-top-style:solid}
+.ev.hist{color:var(--muted)} .ev.hist i{border-top-style:dashed}
+.ev.rep{color:var(--green)} .ev.rep i{border-top-style:solid; width:8px; height:8px; border:0; border-radius:50%; background:currentColor}
+.ev.unv{color:var(--amber)} .ev.unv i{border-top-style:dotted}
+.legend{display:flex; flex-wrap:wrap; gap:8px}
+
+/* topology */
+.topo-scroll{overflow-x:auto; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch}
+.topo{display:block; width:100%; min-width:760px; height:auto; user-select:none}
+.topo text{font-family:var(--sans)}
+.topo .edge .base{fill:none; stroke-width:1.6; transition:opacity .35s, stroke .35s}
+.topo .edge .flow{fill:none; stroke-width:2.6; stroke-linecap:round; stroke-dasharray:2 18; opacity:.0; transition:opacity .35s}
+.topo .edge.local .base{stroke:var(--cyan); opacity:.55}
+.topo .edge.local .flow{stroke:var(--cyan); opacity:.85; animation:dash 1.3s linear infinite}
+.topo .edge.ext .base{stroke:var(--muted); stroke-dasharray:6 6; opacity:.6}
+.topo .edge.ext .flow{stroke:var(--muted); opacity:.55; animation:dash 2.6s linear infinite}
+.topo .edge.unv .base{stroke:var(--amber); stroke-dasharray:1.5 6; stroke-linecap:round; opacity:.85; stroke-width:2}
+.topo .elbl{font-size:12.5px; fill:var(--muted); paint-order:stroke; stroke:var(--bg2); stroke-width:5px; stroke-linejoin:round; transition:opacity .35s}
+.topo .elbl.unv{fill:var(--amber)}
+.topo .node{cursor:default; transition:opacity .35s}
+.topo .node .nb{fill:var(--solid); stroke:var(--line2); stroke-width:1.2; transition:stroke .25s, fill .25s}
+.topo .node.main .nb{stroke:color-mix(in srgb, var(--cyan) 60%, var(--line2))}
+.topo .node.hist .nb{stroke-dasharray:5 4}
+.topo .node .nicon{color:var(--cyan)}
+.topo .node.hist .nicon, .topo .node.ext .nicon{color:var(--muted)}
+.topo .nt{font-size:15px; font-weight:600; fill:var(--text)}
+.topo .ns{font-size:12.5px; fill:var(--muted)}
+.topo .n3{font-size:11.5px; fill:var(--teal)}
+.topo .evdot.obs{fill:var(--cyan)} .topo .evdot.hist{fill:var(--muted)} .topo .evdot.rep{fill:var(--green)} .topo .evdot.unv{fill:var(--amber)}
+.topo .crow > rect{fill:var(--raise); stroke:var(--line)}
+.topo .crow text{font-size:13.5px; fill:var(--text)}
+.topo .crow .nicon{color:var(--muted)}
+.topo.interactive .node{cursor:pointer}
+.topo.interactive .node:hover .nb, .topo .node:focus-visible .nb{stroke:var(--cyan)}
+.topo .node:focus-visible{outline:none}
+.topo .node.sel .nb{stroke:var(--cyan); stroke-width:2; fill:color-mix(in srgb, var(--cyan) 9%, var(--solid))}
+.topo.has-sel .node:not(.sel):not(.conn){opacity:.3}
+.topo.has-sel .edge:not(.act){opacity:.18}
+.topo.has-sel .elbl:not(.act){opacity:.2}
+.topo .edge.act .base{opacity:1; stroke-width:2.2}
+.topo .edge.act .flow{opacity:1; animation-duration:.9s}
+.topo .edge.ext.act .base{stroke:var(--text)}
+.topo .off-only{opacity:0; transition:opacity .45s}
+.topo .cutmark circle{fill:var(--bg2); stroke:var(--rose)} .topo .cutmark path{stroke:var(--rose); stroke-width:2; stroke-linecap:round}
+.topo .jfbadge rect{fill:color-mix(in srgb, var(--green) 14%, var(--solid)); stroke:var(--green)}
+.topo .jfbadge text{fill:var(--green); font-size:12.5px; font-weight:600}
+.topo .crow .play{fill:var(--green); font-size:12px; font-weight:600}
+.topo .crow .pdot{fill:var(--green)}
+
+/* offline states */
+.topo[data-net="off"] .edge.ext{opacity:.08}
+.topo[data-net="off"] .edge.ext .flow{animation:none}
+.topo[data-net="off"] .elbl.ext{opacity:.15}
+.topo[data-net="off"] .node.ext, .topo[data-net="off"] .node.remote{opacity:.32}
+.topo[data-net="off"] .node.inet .nb{stroke:var(--rose); stroke-dasharray:4 4}
+.topo[data-net="off"] .node.inet .nicon{color:var(--rose)}
+.topo[data-net="off"] .off-only{opacity:1}
+.topo[data-net="off"] .on-only{opacity:0}
+.topo[data-net="off"] .edge.jf .base{stroke:var(--green); opacity:1; stroke-width:2.4}
+.topo[data-net="off"] .edge.jf .flow{stroke:var(--green); opacity:1; animation-duration:.8s}
+.topo[data-net="off"] .node.jfnode .nb{stroke:var(--green)}
+.topo[data-net="off"] .node.dns{opacity:.55}
+.topo[data-net="off"] .edge.unv{opacity:.45}
+
+/* flows instance */
+.topo.flowmode .edge, .topo.flowmode .elbl{opacity:.16}
+.topo.flowmode .node{opacity:.4}
+.topo.flowmode .node.fon{opacity:1}
+.topo.flowmode .node.fon .nb{stroke:var(--cyan)}
+.topo.flowmode .edge.fon{opacity:1}
+.topo.flowmode .edge.fon .base{stroke-width:2.4; opacity:1}
+.topo.flowmode .edge.fon .flow{opacity:0}
+.topo.flowmode .elbl.fon{opacity:1}
+.topo.flowmode .edge.fon.funv .base{stroke:var(--amber); stroke-dasharray:1.5 6; stroke-linecap:round}
+.topo .flowlbl{font-size:12.5px; paint-order:stroke; stroke:var(--bg2); stroke-width:5px; stroke-linejoin:round}
+.topo .pkt{fill:var(--cyan); filter:drop-shadow(0 0 6px var(--cyan))}
+
+/* explorer */
+.explorer{padding:20px 20px 16px}
+.explorer-foot{display:flex; flex-wrap:wrap; gap:16px; justify-content:space-between; align-items:center; padding:14px 6px 2px; border-top:1px solid var(--line); margin-top:8px}
+.hint{font-size:14px; color:var(--faint); margin:0}
+.nodepicks{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 18px}
+.chip{font:500 14px var(--sans); color:var(--muted); background:transparent; border:1px solid var(--line2); border-radius:999px; padding:8px 14px; cursor:pointer; display:inline-flex; align-items:center; gap:8px; transition:all .2s}
+.chip:hover{color:var(--text); border-color:var(--faint)}
+.chip[aria-pressed="true"], .chip[aria-selected="true"]{color:var(--bg); background:var(--text); border-color:var(--text)}
+.chip .n{font-size:12px; opacity:.7}
+
+/* drawer */
+.scrim{position:fixed; inset:0; background:rgba(0,0,0,.35); opacity:0; pointer-events:none; transition:opacity .3s; z-index:70}
+.scrim.open{opacity:1; pointer-events:auto}
+.drawer{position:fixed; z-index:80; top:0; right:0; bottom:0; width:min(460px, 100%); background:var(--solid); border-left:1px solid var(--line2);
+  transform:translateX(102%); transition:transform .38s cubic-bezier(.2,.8,.2,1), visibility 0s linear .38s; visibility:hidden; display:flex; flex-direction:column;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px)}
+.drawer.open{transform:none; visibility:visible; transition:transform .38s cubic-bezier(.2,.8,.2,1); box-shadow:-30px 0 80px -40px rgba(0,0,0,.6)}
+@media (min-width:1100px){
+  .scrim{display:none}
+  #explorerHost{transition:max-width .38s cubic-bezier(.2,.8,.2,1)}
+  body.ex-open #explorerHost{max-width:calc(100vw - 460px - max(24px, (100vw - 1180px) / 2) - 44px)}
+  body.ex-open #explorerHost .topo{min-width:0}
+}
+.dhead{padding:24px 26px 18px; border-bottom:1px solid var(--line); position:relative}
+.dclose{position:absolute; top:18px; right:18px; width:38px; height:38px; display:grid; place-items:center; border-radius:10px; border:1px solid var(--line2); background:transparent; color:var(--muted); cursor:pointer}
+.dclose:hover{color:var(--text); border-color:var(--faint)}
+.dkick{font-size:14px; color:var(--teal); margin:0 0 6px}
+.dhead h3{font-family:var(--display); font-weight:600; font-size:30px; line-height:1.05; letter-spacing:-.02em; margin:0 48px 10px 0}
+.dhead .dsub{color:var(--muted); margin:0 0 14px; font-size:15.5px}
+.dbody{overflow-y:auto; padding:6px 26px 30px; flex:1}
+.dsec{padding:18px 0; border-bottom:1px solid var(--line)}
+.dsec:last-child{border-bottom:0}
+.dsec h4{font:600 13.5px var(--sans); color:var(--faint); margin:0 0 10px}
+.dsec p{margin:0; font-size:15.5px}
+dl.kv{display:grid; grid-template-columns:auto 1fr; gap:8px 16px; margin:0; font-size:15px}
+dl.kv dt{color:var(--muted)} dl.kv dd{margin:0}
+ul.plain{margin:0; padding:0; list-style:none; display:grid; gap:9px; font-size:15px}
+ul.plain li{position:relative; padding-left:18px}
+ul.plain li::before{content:""; position:absolute; left:2px; top:.62em; width:7px; height:1px; background:var(--faint)}
+ul.plain.warn li::before{background:var(--amber)}
+.swlist{display:flex; flex-wrap:wrap; gap:6px}
+.sw{font-size:13.5px; padding:5px 10px; border-radius:8px; background:var(--raise); border:1px solid var(--line)}
+.src{display:grid; grid-template-columns:auto 1fr; gap:4px 12px; font-size:14px}
+.src b{font-family:var(--mono); font-weight:500; color:var(--cyan); font-size:12.5px; padding-top:2px}
+.src span{color:var(--muted)}
+.dactions{display:flex; flex-wrap:wrap; gap:10px; padding-top:18px}
+.dactions .btn{padding:11px 16px; font-size:14px}
+.split2{display:grid; grid-template-columns:1fr auto 1fr; gap:10px; align-items:stretch}
+.split2 .neq{align-self:center}
+.split2 .neq{font-family:var(--display); font-size:26px; color:var(--amber)}
+.cap{border:1px solid var(--line2); border-radius:12px; padding:12px; font-size:14px}
+.cap strong{display:block; font-family:var(--display); font-size:22px; font-weight:600}
+.cap span{color:var(--muted)}
+@media (max-width:640px){
+  .drawer{top:auto; left:0; width:100%; height:86vh; border-left:0; border-top:1px solid var(--line2); border-radius:22px 22px 0 0; transform:translateY(102%)}
+  .drawer.open{transform:none}
+}
+
+/* services */
+.svc-bar{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:22px}
+.svc-bar .nodefilter{margin-left:auto}
+.svc-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:12px}
+.svc{display:grid; grid-template-columns:auto 1fr; gap:14px; align-items:start; text-align:left; padding:16px; border-radius:14px; border:1px solid var(--line); background:var(--panel); color:var(--text); cursor:pointer; font:inherit; transition:border-color .2s, background .2s}
+.svc:hover{border-color:var(--line2); background:var(--raise)}
+.svc[hidden]{display:none}
+.mg{width:42px; height:42px; border-radius:11px; display:grid; place-items:center; font:700 15px var(--display); letter-spacing:-.02em; color:#fff}
+.svc .nm{font-weight:600; font-size:16px; line-height:1.25}
+.svc .ct{font-size:13px; color:var(--muted); margin:2px 0 10px}
+.svc .meta{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
+.host{font-size:12.5px; color:var(--muted); display:inline-flex; gap:6px; align-items:center}
+.snap{margin-top:26px; display:flex; flex-wrap:wrap; gap:14px 28px; align-items:baseline; padding:18px 20px; border:1px dashed var(--line2); border-radius:14px; color:var(--muted); font-size:15px}
+.snap strong{font-family:var(--display); color:var(--text); font-size:30px; font-weight:600; margin-right:6px}
+
+/* offline sim */
+.sim{display:grid; grid-template-columns:1fr; gap:16px}
+.sim-ctl{order:-1; padding:18px 22px}
+.sim-ctl .switchrow{border-bottom:0; padding-bottom:0}
+.sim-ctl .switchrow > div{flex:1}
+.sim-ctl .simnote{margin:0; max-width:24em; text-align:right}
+.sim-status{padding:22px}
+.sim-status .status{padding-top:0; grid-template-columns:repeat(auto-fit, minmax(240px,1fr)); gap:24px}
+.sim-diagram{padding:18px}
+.sim-ctl{padding:26px}
+.switchrow{display:flex; align-items:center; justify-content:space-between; gap:16px; padding-bottom:22px; border-bottom:1px solid var(--line)}
+.switchrow .lbl{font-family:var(--display); font-size:22px; font-weight:600; line-height:1.15}
+.switchrow .state{font-size:14px; color:var(--muted); margin-top:4px}
+.switch{position:relative; width:118px; height:52px; border-radius:999px; border:1px solid var(--line2); background:var(--raise); cursor:pointer; flex:none; padding:0; transition:background .3s, border-color .3s}
+.switch .knob{position:absolute; top:5px; left:5px; width:62px; height:40px; border-radius:999px; background:var(--cyan); color:#05181c; display:grid; place-items:center; font:700 14px var(--sans); transition:transform .35s cubic-bezier(.2,.8,.2,1), background .3s, color .3s}
+.switch[aria-checked="false"]{border-color:var(--rose)}
+.switch[aria-checked="false"] .knob{transform:translateX(44px); background:var(--rose); color:#1a0a07}
+.simnote{font-size:13.5px; color:var(--faint); margin:16px 0 0}
+.status{display:grid; gap:18px; padding-top:20px}
+.status h4{font:600 14px var(--sans); margin:0 0 8px; display:flex; align-items:center; gap:8px}
+.status h4 .d{width:8px; height:8px; border-radius:50%}
+.status ul{margin:0; padding:0; list-style:none; display:flex; flex-wrap:wrap; gap:6px}
+.status li{font-size:13.5px; padding:5px 10px; border-radius:8px; border:1px solid var(--line); background:var(--bg2)}
+.status p{font-size:14px; color:var(--muted); margin:8px 0 0}
+.motto{margin:44px 0 0; font-family:var(--display); font-weight:600; font-size:clamp(28px, 3.8vw, 46px); line-height:1.08; letter-spacing:-.02em; max-width:22em; transition:color .5s}
+.motto.lit{color:var(--green)}
+.quote{margin:22px 0 0; max-width:46em; padding:18px 22px; border-left:2px solid var(--green); background:color-mix(in srgb, var(--green) 6%, transparent); border-radius:0 12px 12px 0; font-size:16px}
+.quote cite{display:block; font-style:normal; font-size:13.5px; color:var(--muted); margin-top:8px}
+details.more{margin-top:18px; border:1px solid var(--line); border-radius:14px; background:var(--panel)}
+details.more summary{cursor:pointer; padding:16px 20px; font-weight:600; list-style:none; display:flex; justify-content:space-between; align-items:center; gap:12px}
+details.more summary::-webkit-details-marker{display:none}
+details.more summary::after{content:"+"; font-family:var(--display); font-size:22px; color:var(--muted); line-height:1; transition:transform .25s}
+details.more[open] summary::after{transform:rotate(45deg)}
+details.more .inner{padding:0 20px 20px}
+.unrec{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:8px 20px; font-size:14.5px; color:var(--muted); margin:0; padding:0; list-style:none}
+.unrec li::before{content:"○ "; color:var(--amber)}
+@media (max-width:860px){ .sim-ctl .simnote{display:none} .switchrow .lbl{font-size:19px} }
+
+/* flows */
+.flows{display:grid; grid-template-columns:minmax(270px, .66fr) minmax(0,1.7fr); gap:20px}
+.flowtabs{display:flex; flex-direction:column; gap:6px; margin-bottom:18px}
+.ftab{text-align:left; font:inherit; color:var(--muted); background:transparent; border:1px solid transparent; border-radius:12px; padding:12px 14px; cursor:pointer; display:flex; gap:12px; align-items:center; transition:all .2s}
+.ftab:hover{color:var(--text); background:var(--raise)}
+.ftab[aria-selected="true"]{color:var(--text); border-color:var(--line2); background:var(--raise)}
+.ftab[aria-selected="true"] .ic{color:var(--cyan)}
+.ftab b{font-weight:600; display:block; font-size:16px}
+.ftab small{font-size:13px; color:var(--faint)}
+.steps{margin:0; padding:0; list-style:none; counter-reset:s}
+.steps li{counter-increment:s; position:relative; padding:0 0 16px 40px; font-size:15px}
+.steps li::before{content:counter(s); position:absolute; left:0; top:0; width:26px; height:26px; border-radius:50%; border:1px solid var(--line2); display:grid; place-items:center; font-size:12.5px; color:var(--muted); background:var(--bg2)}
+.steps li::after{content:""; position:absolute; left:13px; top:28px; bottom:2px; width:1px; background:var(--line2)}
+.steps li:last-child::after{display:none}
+.steps li.on::before{border-color:var(--cyan); color:var(--cyan)}
+.steps .ev{margin-top:6px}
+.flowpanel{padding:20px}
+.flownote{font-size:14px; color:var(--muted); margin:6px 0 0; padding-top:12px; border-top:1px solid var(--line)}
+@media (max-width:980px){ .flows{grid-template-columns:1fr} .flowtabs{flex-direction:row; overflow-x:auto} .ftab{flex:none} }
+
+/* decisions */
+.ledger{border-top:1px solid var(--line2)}
+.lrow{display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr); gap:32px; padding:28px 0; border-bottom:1px solid var(--line)}
+.lrow h3{font-family:var(--display); font-weight:600; font-size:24px; letter-spacing:-.015em; line-height:1.15; margin:0}
+.lrow .lab{font-size:13px; color:var(--faint); margin:0 0 6px; display:flex; align-items:center; gap:8px}
+.lrow .lab::before{content:""; width:10px; height:2px; background:var(--teal)}
+.lrow .cost .lab::before{background:var(--amber)}
+.lrow p{margin:0; font-size:15.5px}
+.lrow .gain p{color:var(--text)} .lrow .cost p{color:var(--muted)}
+@media (max-width:860px){ .lrow{grid-template-columns:1fr; gap:14px} }
+
+/* inventory */
+.inv{display:grid; gap:10px}
+.inv details{border:1px solid var(--line); border-radius:16px; background:var(--panel); overflow:hidden}
+.inv summary{cursor:pointer; list-style:none; display:grid; grid-template-columns:auto 1fr auto auto; gap:16px; align-items:center; padding:18px 22px}
+.inv summary::-webkit-details-marker{display:none}
+.inv summary .ic{color:var(--cyan)}
+.inv summary b{font-family:var(--display); font-weight:600; font-size:20px}
+.inv summary .sum{color:var(--muted); font-size:14.5px; text-align:right}
+.inv summary .chev{transition:transform .25s; color:var(--muted)}
+.inv details[open] .chev{transform:rotate(180deg)}
+.inv .inner{padding:4px 22px 22px}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse; width:100%; font-size:14.5px; min-width:560px}
+th,td{text-align:left; padding:11px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+th{font-weight:600; color:var(--faint); font-size:13px}
+td.num{text-align:right; font-variant-numeric:tabular-nums}
+tr.total td{font-weight:600; border-bottom:0; color:var(--text)}
+@media (max-width:640px){ .inv summary{grid-template-columns:auto 1fr auto} .inv summary .sum{display:none} }
+
+/* limitations */
+.oqgrid{display:grid; grid-template-columns:repeat(auto-fill, minmax(330px,1fr)); gap:12px}
+.oq{padding:22px; border:1px solid var(--line); border-radius:16px; background:var(--panel); display:flex; flex-direction:column; gap:12px}
+.oq h3{font-family:var(--display); font-weight:600; font-size:21px; margin:0; line-height:1.2}
+.oq p{margin:0; font-size:15px; color:var(--muted)}
+.oq .next{margin-top:auto; padding-top:12px; border-top:1px dashed var(--line2); font-size:14.5px; color:var(--text)}
+.oq .next span{color:var(--teal)}
+
+/* footer */
+footer{margin-top:120px; border-top:1px solid var(--line); padding:44px 0 56px; color:var(--muted); font-size:14.5px}
+footer .wrap{display:grid; grid-template-columns:1fr 1.4fr; gap:40px}
+footer p{margin:0 0 10px}
+footer .ftitle{font-family:var(--display); color:var(--text); font-size:18px; font-weight:600}
+@media (max-width:760px){ footer .wrap{grid-template-columns:1fr} }
+
+.i{flex:none}
+
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation:none !important; transition:none !important}
+  .topo .edge .flow{opacity:0 !important}
+}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="6" r="2.4"/><circle cx="5.5" cy="17" r="2.4"/><circle cx="18.5" cy="17" r="2.4"/><path d="M11 8.2 6.6 14.9M13 8.2l4.4 6.7M8 17h8"/></svg>Offline-First Homelab</a>
+    <nav aria-label="Sections">
+      <a href="#architecture">Architecture</a><a href="#services">Services</a><a href="#offline">Offline</a><a href="#flows">Data flows</a><a href="#decisions">Decisions</a><a href="#inventory">Inventory</a><a href="#open-questions">Open questions</a>
+    </nav>
+    <a class="navgh" href="https://github.com/fecosta/offline-first-homelab" target="_blank" rel="noopener"><span data-icon="github"></span>GitHub</a>
+  </div>
+</header>
+
+<main>
+<!-- HERO -->
+<section class="hero" id="top">
+  <div class="wrap">
+    <div>
+      <p class="tagline">Your infrastructure. Your data. Your rules.</p>
+      <h1><span>A small cloud.</span><span>At home.</span></h1>
+      <p class="lede">An offline-first homelab for media, photos, files, and experimentation. Built around local ownership, independent infrastructure, and the ability to keep using essential services when the internet goes down.</p>
+      <div class="actions">
+        <a class="btn primary" href="#architecture">Explore architecture</a>
+        <a class="btn" href="https://github.com/fecosta/offline-first-homelab" target="_blank" rel="noopener"><span data-icon="github"></span>View on GitHub</a>
+      </div>
+      <p class="provenance">Documented from an October 27, 2026 host inventory, older dated notes, and the owner’s reports of using it through internet outages. Nothing here is live monitoring.</p>
+    </div>
+    <div class="hero-vis" aria-hidden="true">
+      <svg viewBox="0 0 520 480">
+        <circle class="hv-ring spin" cx="260" cy="250" r="226"/>
+        <circle class="hv-ring" cx="260" cy="250" r="160" style="opacity:.5"/>
+        <text x="260" y="16" text-anchor="middle" class="hv-sub" style="fill:var(--faint)">the internet, out here</text>
+        <path class="hv-link" id="hl1" d="M260 168 L120 352"/>
+        <path class="hv-link" id="hl2" d="M260 168 L400 352"/>
+        <path class="hv-link" d="M120 352 L400 352" style="stroke-dasharray:4 6"/>
+        <path class="hv-pkt" d="M260 168 L400 352"/>
+        <path class="hv-pkt slow" d="M120 352 L260 168"/>
+        <circle class="hv-pulse" cx="260" cy="168" r="40"/>
+        <g class="hv-dot"><circle cx="70" cy="250" r="3"/><circle cx="452" cy="250" r="3"/><circle cx="260" cy="452" r="3"/><circle cx="160" cy="430" r="2.4"/><circle cx="360" cy="430" r="2.4"/></g>
+        <g class="hv-node core" transform="translate(220 128)"><rect width="80" height="80" rx="20"/><g class="ico"><svg x="22" y="22" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" data-icon-raw="cpu"></svg></g></g>
+        <text class="hv-lbl" x="260" y="234" text-anchor="middle">Compute</text>
+        <text class="hv-sub" x="260" y="252" text-anchor="middle">Mac mini M1</text>
+        <g class="hv-node" transform="translate(88 320)"><rect width="64" height="64" rx="16"/><g class="ico"><svg x="18" y="18" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" data-icon-raw="shield"></svg></g></g>
+        <text class="hv-lbl" x="120" y="410" text-anchor="middle">DNS</text>
+        <text class="hv-sub" x="120" y="428" text-anchor="middle">Pi Zero 2 W</text>
+        <g class="hv-node" transform="translate(368 320)"><rect width="64" height="64" rx="16"/><g class="ico"><svg x="18" y="18" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" data-icon-raw="hdd"></svg></g></g>
+        <text class="hv-lbl" x="400" y="410" text-anchor="middle">Storage</text>
+        <text class="hv-sub" x="400" y="428" text-anchor="middle">Pi-based NAS</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ARCHITECTURE -->
+<section class="block" id="architecture">
+  <div class="wrap">
+    <div class="sh">
+      <div><div class="kicker">Architecture explorer</div><h2>Three devices, three jobs.</h2></div>
+      <p>Compute, storage, and DNS each live on their own hardware. Select any device to see what it is, what it runs, what it depends on, and how strong the evidence is. Line styles show how each connection is known.</p>
+    </div>
+    <div class="nodepicks" role="group" aria-label="Jump to a device">
+      <button class="chip" data-pick="mac"><span data-icon="cpu"></span>Mac mini M1</button>
+      <button class="chip" data-pick="nas"><span data-icon="hdd"></span>Pi-based NAS</button>
+      <button class="chip" data-pick="dns"><span data-icon="shield"></span>Pi Zero 2 W</button>
+      <button class="chip" data-pick="router"><span data-icon="router"></span>Home LAN</button>
+      <button class="chip" data-pick="tailscale"><span data-icon="lock"></span>Tailscale</button>
+      <button class="chip" data-pick="cloudflare"><span data-icon="cloud"></span>Cloudflare Tunnel</button>
+    </div>
+    <div class="panel explorer">
+      <div class="topo-scroll" id="explorerHost"></div>
+      <div class="explorer-foot">
+        <div class="legend" aria-label="Evidence legend">
+          <span class="ev obs"><i></i>Observed, Oct 27 capture</span>
+          <span class="ev hist"><i></i>Documented or external path</span>
+          <span class="ev unv"><i></i>Not verified</span>
+          <span class="ev rep"><i></i>Owner-reported</span>
+        </div>
+        <p class="hint">Lines summarize relationships. They don’t prove firewall rules, routing isolation, or encryption.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section class="block" id="services">
+  <div class="wrap">
+    <div class="sh">
+      <div><div class="kicker">Application ecosystem</div><h2>What runs on it.</h2></div>
+      <p>Every application is a Docker container on the Mac mini, except Pi-hole on its own Pi. Select a service for its purpose, dependencies, and what is known about its behavior without the internet.</p>
+    </div>
+    <div class="svc-bar" role="toolbar" aria-label="Filter services by category" id="svcFilters"></div>
+    <div class="svc-grid" id="svcGrid"></div>
+    <div class="snap">
+      <span><strong>6</strong>Compose projects</span>
+      <span><strong>23</strong>containers listed as running</span>
+      <span>Dated inventory snapshot from <b style="color:var(--text)">October 27, 2026</b>. A point-in-time record, not a current health check.</span>
+    </div>
+  </div>
+</section>
+
+<!-- OFFLINE -->
+<section class="block" id="offline">
+  <div class="wrap">
+    <div class="sh">
+      <div><div class="kicker">Offline-first simulation</div><h2>Pull the plug on the internet.</h2></div>
+      <p>Turn the connection off and watch which paths remain. This is a conceptual illustration of the documented architecture, not a measured test of the system.</p>
+    </div>
+    <div class="sim">
+      <div class="panel sim-diagram"><div class="topo-scroll" id="simHost"></div></div>
+      <div class="panel sim-ctl">
+        <div class="switchrow">
+          <div><div class="lbl" id="swLbl">Internet connection</div><div class="state" id="swState">Connected. All documented paths shown.</div></div>
+          <p class="simnote">Conceptual simulation. Statuses come from the repository’s offline validation record, not from this page.</p>
+          <button class="switch" id="netSwitch" role="switch" aria-checked="true" aria-labelledby="swLbl"><span class="knob" id="swKnob">ON</span></button>
+        </div>
+      </div>
+      <div class="panel sim-status"><div class="status" id="simStatus" aria-live="polite"></div></div>
+    </div>
+    <p class="motto" id="motto">The internet is a connection, not a prerequisite for everything at home.</p>
+    <blockquote class="quote">During real internet outages, Jellyfin has been used successfully on phones, TVs, and notebooks. This is owner-reported operating experience, not a controlled benchmark of every application.<cite>Owner clarification, November 2, 2026 (S0). Dates and durations of outages were not recorded.</cite></blockquote>
+    <details class="more">
+      <summary>What the outage reports don’t tell us</summary>
+      <div class="inner">
+        <ul class="unrec">
+          <li>Exact dates or durations</li><li>How the WAN was lost</li><li>Client apps or OS versions</li><li>Where the played media lived</li><li>Direct play or transcoding</li><li>Concurrent streams</li><li>Existing session or fresh login</li><li>Restarts of host, NAS or router</li><li>Local DNS, cached DNS, or direct IP</li><li>Whether mobile data was off</li><li>Power or UPS behavior</li><li>Cold-start recovery</li>
+        </ul>
+        <p class="hint" style="margin-top:14px">“Not established” means the material doesn’t support a result. It doesn’t mean the workflow failed.</p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- FLOWS -->
+<section class="block" id="flows">
+  <div class="wrap">
+    <div class="sh">
+      <div><div class="kicker">How data flows</div><h2>Follow a request.</h2></div>
+      <p>Pick an everyday task and trace it through the hardware. Where the repository can’t confirm a hop, the path turns amber instead of guessing.</p>
+    </div>
+    <div class="flows">
+      <div>
+        <div class="flowtabs" role="tablist" aria-label="Workflows" id="flowTabs"></div>
+        <ol class="steps" id="flowSteps"></ol>
+      </div>
+      <div class="panel flowpanel" role="tabpanel" id="flowPanel">
+        <div class="topo-scroll" id="flowHost"></div>
+        <p class="flownote" id="flowNote"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DECISIONS -->
+<section class="block" id="decisions">
+  <div class="wrap">
+    <div class="sh">
+      <div><div class="kicker">Decisions and tradeoffs</div><h2>Every choice has a cost.</h2></div>
+      <p>Six principles shape the homelab. Each one buys something and creates a responsibility. The costs come straight from the repository’s own limitations.</p>
+    </div>
+    <div class="ledger" id="ledger"></div>
+  </div>
+</section>
+
+<!-- INVENTORY -->
+<section class="block" id="inventory">
+  <div class="wrap">
+    <div class="sh">
+      <div><div class="kicker">Technical inventory</div><h2>As recorded on October 27, 2026.</h2></div>
+      <p>The strongest capture is a single host inventory from the Mac mini. NAS and DNS details come from older notes and are labeled as such. Addresses, hostnames, and credentials are omitted.</p>
+    </div>
+    <div class="inv" id="inv"></div>
+  </div>
+</section>
+
+<!-- LIMITATIONS -->
+<section class="block" id="open-questions">
+  <div class="wrap">
+    <div class="sh">
+      <div><div class="kicker">Limitations and future exploration</div><h2>What’s still open.</h2></div>
+      <p>These are the next things worth validating. An unresolved item isn’t a failure; it’s a question the evidence doesn’t yet answer.</p>
+    </div>
+    <div class="oqgrid" id="openQ"></div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <p class="ftitle">Offline-First Homelab</p>
+      <p>Architecture documented from a real homelab.</p>
+      <p><a href="https://github.com/fecosta/offline-first-homelab" target="_blank" rel="noopener">github.com/fecosta/offline-first-homelab</a></p>
+    </div>
+    <div>
+      <p>Facts on this page reflect an October 27, 2026 host inventory (S1), older dated notes (S2–S5), migration output (S6), and owner clarifications supplied November 2, 2026 (S0). The repository is a local v1 draft for review. Nothing here is live telemetry, an uptime figure, or a security certification.</p>
+      <p>Network addresses, hostnames, port mappings, and credentials are intentionally left out. This page has no backend and no external scripts, so it keeps working offline once loaded.</p>
+    </div>
+  </div>
+</footer>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="false" aria-labelledby="dTitle" aria-hidden="true">
+  <div class="dhead">
+    <button class="dclose" id="dClose" aria-label="Close details"><span data-icon="x"></span></button>
+    <p class="dkick" id="dKick"></p>
+    <h3 id="dTitle"></h3>
+    <p class="dsub" id="dSub"></p>
+    <div class="legend" id="dBadges"></div>
+  </div>
+  <div class="dbody" id="dBody"></div>
+</aside>
+
+<script>
+(function(){
+"use strict";
+const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ---------- icons (Lucide-style, inline) ---------- */
+const ICON = {
+  cpu:'<rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2"/>',
+  hdd:'<line x1="22" x2="2" y1="12" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" x2="6.01" y1="16" y2="16"/><line x1="10" x2="10.01" y1="16" y2="16"/>',
+  shield:'<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+  router:'<rect width="20" height="8" x="2" y="14" rx="2"/><path d="M6.01 18H6"/><path d="M10.01 18H10"/><path d="M15 10v4"/><path d="M17.84 7.17a4 4 0 0 0-5.66 0"/><path d="M20.66 4.34a8 8 0 0 0-11.31 0"/>',
+  globe:'<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>',
+  lock:'<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  cloud:'<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
+  user:'<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  tv:'<rect width="20" height="15" x="2" y="7" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/>',
+  laptop:'<path d="M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9m16 0H4m16 0 1.28 2.55a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45L4 16"/>',
+  phone:'<rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/>',
+  film:'<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18M3 7.5h4M3 12h18M3 16.5h4M17 3v18M17 7.5h4M17 16.5h4"/>',
+  image:'<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>',
+  folder:'<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+  layers:'<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
+  network:'<rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/>',
+  key:'<path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/>',
+  github:'<path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-8.5-3"/>',
+  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  chev:'<path d="m6 9 6 6 6-6"/>'
+};
+const ic = (n, s=18) => `<svg class="i" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]||""}</svg>`;
+document.querySelectorAll("[data-icon]").forEach(el => el.outerHTML = ic(el.dataset.icon));
+document.querySelectorAll("[data-icon-raw]").forEach(el => el.innerHTML = ICON[el.dataset.iconRaw]);
+
+const EVL = {obs:"Observed Oct 27", hist:"Historical notes", rep:"Owner-reported", unv:"Not verified"};
+const ev = (k, label) => `<span class="ev ${k}"><i></i>${label || EVL[k]}</span>`;
+
+/* ---------- sources ---------- */
+const SRC = {
+  S0:"Owner clarification, Nov 2, 2026. Jellyfin used during outages; no dates recorded.",
+  S1:"Mac mini host inventory captured Oct 27, 2026. Hardware, software, routes, containers, mounts, timers.",
+  S2:"Homelab stack narrative, undated (file modified Aug 28, 2026). Three-node design, NAS hardware.",
+  S3:"Current-state update dated Jun 17, 2026. Pi-hole, NAS mappings, Gluetun/qBittorrent design.",
+  S4:"NAS setup notes dated May 17, 2026. mergerfs pool, SMB share, 2 TB drive status.",
+  S5:"Earlier configuration notes. Historical context only; superseded by S1.",
+  S6:"Immich migration output, available Nov 2, 2026. Copy succeeded; cutover not shown."
+};
+const srcList = ids => `<div class="src">${ids.map(i=>`<b>${i}</b><span>${SRC[i]}</span>`).join("")}</div>`;
+
+/* ---------- topology geometry ---------- */
+const NODES = {
+  remote:   {x:150, y:72,  w:176, h:52, icon:"user",   t:"Remote client", s:"Outside the home", ev:"hist", cls:"remote"},
+  internet: {x:500, y:72,  w:180, h:52, icon:"globe",  t:"Internet", s:"WAN, external services", ev:"hist", cls:"ext inet"},
+  tailscale:{x:318, y:190, w:190, h:52, icon:"lock",   t:"Tailscale", s:"Private remote access", ev:"hist", cls:"ext"},
+  cloudflare:{x:688,y:190, w:212, h:52, icon:"cloud",  t:"Cloudflare Tunnel", s:"Public access", ev:"hist", cls:"ext"},
+  router:   {x:440, y:338, w:152, h:56, icon:"router", t:"Home LAN", s:"Router", ev:"obs", cls:"jfnode"},
+  mac:      {x:772, y:338, w:224, h:76, icon:"cpu",    t:"Mac mini M1", s:"Compute, Docker apps", t3:"6 projects, 23 containers (Oct 27)", ev:"obs", cls:"main jfnode"},
+  nas:      {x:772, y:534, w:204, h:60, icon:"hdd",    t:"Pi-based NAS", s:"Shared storage", ev:"hist", cls:"hist"},
+  dns:      {x:440, y:534, w:192, h:60, icon:"shield", t:"Pi Zero 2 W", s:"Pi-hole DNS", ev:"hist", cls:"hist dns"},
+  clients:  {x:125, y:388, w:172, h:206, ev:"rep", cls:"clients jfnode"}
+};
+const EDGES = [
+  {id:"cl_rt",  a:"clients", b:"router", type:"local", d:"M125 388 L440 338", jf:true},
+  {id:"rt_mac", a:"router", b:"mac", type:"local", d:"M440 338 L772 338", jf:true},
+  {id:"mac_nas",a:"mac", b:"nas", type:"local", d:"M772 338 L772 534"},
+  {id:"cl_dns", a:"clients", b:"dns", type:"unv", d:"M125 388 Q 190 560 440 534"},
+  {id:"rt_in",  a:"router", b:"internet", type:"ext", d:"M440 338 L500 72"},
+  {id:"in_ts",  a:"internet", b:"tailscale", type:"ext", d:"M500 72 L318 190"},
+  {id:"ts_mac", a:"tailscale", b:"mac", type:"ext", d:"M318 190 C 430 250 610 240 772 338"},
+  {id:"in_cf",  a:"internet", b:"cloudflare", type:"ext", d:"M500 72 L688 190"},
+  {id:"cf_mac", a:"cloudflare", b:"mac", type:"ext", d:"M688 190 L772 338"},
+  {id:"rm_in",  a:"remote", b:"internet", type:"ext", d:"M150 72 L500 72"}
+];
+const ELABELS = [
+  {e:"cl_rt", x:270, y:350, t:"Home network", cls:""},
+  {e:"mac_nas", x:760, y:452, t:"CIFS / SMB 3.0 mount (observed)", cls:"", anchor:"end"},
+  {e:"cl_dns", x:226, y:520, t:"DNS role documented, path unverified", cls:"unv"},
+  {e:"rt_in", x:478, y:262, t:"WAN", cls:"ext", anchor:"start"},
+  {e:"cf_mac", x:742, y:262, t:"documented", cls:"ext", anchor:"start"},
+  {e:"ts_mac", x:560, y:236, t:"documented", cls:"ext"}
+];
+
+function nodeSVG(id, n, interactive){
+  const x = n.x - n.w/2, y = n.y - n.h/2;
+  const a11y = interactive ? ` tabindex="0" role="button" aria-label="${(n.t||"Local clients")}. Open details"` : "";
+  if(id === "clients"){
+    const rows = [["tv","TV",62],["laptop","Notebook",112],["phone","Phone",162]].map(([ico,lbl,ry])=>`
+      <g class="crow"><rect x="12" y="${ry-20}" width="${n.w-24}" height="40" rx="10"/>
+        <g class="nicon"><svg x="22" y="${ry-9}" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${ICON[ico]}</svg></g>
+        <text x="48" y="${ry+5}">${lbl}</text>
+        <g class="off-only"><title>Jellyfin playing locally (owner-reported)</title><path class="pdot" d="M${n.w-40} ${ry-7} L${n.w-28} ${ry} L${n.w-40} ${ry+7} Z"/></g>
+      </g>`).join("");
+    return `<g class="node ${n.cls}" data-node="${id}"${a11y} transform="translate(${x} ${y})">
+      <rect class="nb" width="${n.w}" height="${n.h}" rx="16"/>
+      <text class="nt" x="16" y="28">Local clients</text>
+      <circle class="evdot ${n.ev}" cx="${n.w-14}" cy="22" r="4"/>${rows}</g>`;
+  }
+  const ty = n.t3 ? n.h/2 - 10 : n.h/2 - 3;
+  return `<g class="node ${n.cls||""}" data-node="${id}"${a11y} transform="translate(${x} ${y})">
+    <rect class="nb" width="${n.w}" height="${n.h}" rx="13"/>
+    <g class="nicon"><svg x="14" y="${n.h/2-11}" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${ICON[n.icon]}</svg></g>
+    <text class="nt" x="46" y="${ty}">${n.t}</text>
+    <text class="ns" x="46" y="${ty+17}">${n.s}</text>
+    ${n.t3 ? `<text class="n3" x="46" y="${ty+33}">${n.t3}</text>` : ""}
+    <circle class="evdot ${n.ev}" cx="${n.w-12}" cy="12" r="3.5"/></g>`;
+}
+
+function buildTopo(host, pre, opts={}){
+  const edges = EDGES.map(e=>`<g class="edge ${e.type}${e.jf?" jf":""}" data-edge="${e.id}" data-a="${e.a}" data-b="${e.b}">
+     <path class="base" id="${pre}-e-${e.id}" d="${e.d}"/><path class="flow" d="${e.d}"/></g>`).join("");
+  const labels = ELABELS.map(l=>`<text class="elbl ${l.cls}" data-for="${l.e}" x="${l.x}" y="${l.y}" text-anchor="${l.anchor||"middle"}">${l.t}</text>`).join("");
+  const nodes = Object.entries(NODES).map(([id,n])=>nodeSVG(id,n,opts.interactive)).join("");
+  const extra = opts.sim ? `
+    <g class="cutmark off-only" transform="translate(470 205)"><circle r="13"/><path d="M-5 -5 L5 5 M5 -5 L-5 5"/></g>
+    <g class="off-only"><text x="500" y="122" text-anchor="middle" style="font-size:12.5px;fill:var(--rose);font-weight:600">Unavailable (simulated)</text></g>
+    <g class="jfbadge off-only" transform="translate(664 386)"><rect width="216" height="26" rx="13"/><text x="108" y="17.5" text-anchor="middle">Jellyfin: reported working</text></g>
+    <g class="off-only"><text x="760" y="472" text-anchor="end" style="font-size:11.5px;fill:var(--green)">Media location during outages not recorded</text></g>` : "";
+  const flowExtra = opts.flow ? `<text class="flowlbl" id="${pre}-flowlbl" x="760" y="472" text-anchor="end" style="fill:var(--amber)"></text><circle class="pkt" id="${pre}-pkt" r="5.5" cx="-20" cy="-20"/>` : "";
+  host.innerHTML = `<svg class="topo${opts.interactive?" interactive":""}${opts.flow?" flowmode":""}" id="${pre}" viewBox="0 0 1000 600" role="group" aria-label="${opts.label||"Homelab topology"}">
+    <title>${opts.label||"Homelab topology"}</title>
+    <rect x="0" y="0" width="1000" height="600" fill="none"/>
+    <rect x="20" y="268" width="960" height="320" rx="22" fill="none" stroke="var(--line)" stroke-dasharray="2 6"/>
+    <text x="962" y="292" text-anchor="end" style="font-size:12px;fill:var(--faint)">Inside the home</text>
+    ${edges}${labels}${extra}${flowExtra}${nodes}</svg>`;
+  return host.querySelector("svg");
+}
+
+/* ---------- node details ---------- */
+const NODE_INFO = {
+  mac:{kick:"Node A, application and compute", title:"Mac mini M1", sub:"Runs every containerised application: media, photos, files, dashboard, and AI experiments.", badges:["obs"],
+    hw:[["Model","Apple Mac mini M1 (<span class=mono>Macmini9,1</span>)"],["CPU","ARM64, eight cores"],["Memory","7.4 GiB reported; 8 GB-class"],["Internal disk","Apple SSD, 233.8G device"],["Linux filesystem","143G Btrfs, 85% used in snapshot"],["OS","Fedora Asahi Remix 42"],["Runtime","Docker 29.5.3 with Compose"]],
+    sw:["Jellyfin","Immich","Nextcloud","Arr stack","Glance","LibreChat","Gluetun","Tailscale","cloudflared"],
+    deps:["NAS share mounted over CIFS / SMB 3.0, observed Oct 27","Home LAN over Ethernet and Wi-Fi; Ethernet preferred by route metric","An active NAS automount and a recovery timer exist; their behavior wasn’t reviewed"],
+    lim:["A single compute host: no high availability or automatic failover","Per-container bind mounts weren’t captured","Database data locations and backup consistency aren’t established"],
+    src:["S1","S2"], host:"mac"},
+  nas:{kick:"Node B, shared storage", title:"Pi-based NAS", sub:"Provides the network share the Mac mini mounts. Earlier notes describe media containers receiving it as /data.", badges:["hist","obs"], badgeLabels:["Hardware: historical notes","Mount: observed Oct 27"],
+    hw:[["Board","Raspberry Pi 5-class, four Cortex-A76 cores"],["Memory","8 GB RAM"],["System disk","64 GB microSD"],["OS","Debian 13 with OpenMediaVault"],["Pooling","mergerfs"],["Disks described","500 GB SSD, 1 TB SSD, 2 TB HDD"],["Transport","SMB/CIFS"]],
+    capacity:true,
+    sw:["OpenMediaVault","mergerfs","SMB/CIFS"],
+    deps:["Home LAN, mounted from a LAN address","The Mac mini’s automount to attach the share"],
+    lim:["Capacity is unresolved; the two reported figures are not combined","The 2 TB disk was not initialised or mounted in the May note","No backup or restore has been demonstrated","No fresh NAS-side inspection; hardware is from older notes"],
+    src:["S1","S2","S4"], host:"nas"},
+  dns:{kick:"Node C, network DNS", title:"Raspberry Pi Zero 2 W", sub:"Runs Pi-hole for DNS filtering, according to earlier documentation.", badges:["hist","unv"], badgeLabels:["Historical notes","Resolver path not verified"],
+    hw:[["Board","Raspberry Pi Zero 2 W"],["OS","Raspberry Pi OS Lite"],["Service","Pi-hole"]],
+    sw:["Pi-hole"],
+    deps:["Clients would need to use it as their resolver; the current path is unknown"],
+    lim:["The Oct 27 capture has an empty DNS section","The old Pi-hole subnet differs from the October LAN subnet","Behavior during internet outages isn’t established","No fresh device inventory"],
+    src:["S2","S3"], host:"dns"},
+  router:{kick:"Home network", title:"Home LAN and router", sub:"The local network that connects clients, the Mac mini, the NAS, and the DNS Pi.", badges:["obs"],
+    hw:[["Routes seen","Ethernet and Wi-Fi, both via the LAN gateway"],["Preferred","Ethernet (lower route metric)"],["Docker","A separate bridge network per Compose project"]],
+    deps:["The WAN connection for anything outside the home"],
+    lim:["Router and DHCP configuration weren’t captured","Ethernet-to-Wi-Fi failover behavior is unknown","Effective isolation between Docker networks is unverified"],
+    src:["S1"]},
+  internet:{kick:"External connectivity", title:"Internet", sub:"The home’s WAN link. Remote access, indexers, metadata, subtitles, VPN-backed downloads, and AI providers sit on this side.", badges:["hist"], badgeLabels:["External path"],
+    deps:["Tailscale private access","Cloudflare Tunnel public access","Any external integrations an app uses"],
+    lim:["No outage result is claimed for any internet-side dependency"], src:["S0","S1"]},
+  tailscale:{kick:"Access layer", title:"Tailscale", sub:"Private remote access into the homelab from outside the home.", badges:["obs","hist"], badgeLabels:["Present in Oct 27 capture","Role from older notes"],
+    deps:["Internet connection","Mac mini, where its version and interface appear"],
+    lim:["Access policies (ACLs) weren’t inspected","Active peers unknown","Outage behavior has no recorded result"], src:["S1","S2","S3"], svc:"tailscale"},
+  cloudflare:{kick:"Access layer", title:"Cloudflare Tunnel", sub:"Public access to selected services, as described in earlier notes.", badges:["obs","hist"], badgeLabels:["cloudflared enabled Oct 27","Exposure from older notes"],
+    deps:["Internet connection","cloudflared on the Mac mini"],
+    lim:["Which services are actually public isn’t established","Tunnel ingress rules and identity controls weren’t inspected"], src:["S1","S2","S3"], svc:"cloudflare"},
+  clients:{kick:"Local clients", title:"Phone, TV, notebook", sub:"The everyday devices that use the homelab on the home network.", badges:["rep"],
+    deps:["Home LAN","Jellyfin on the Mac mini"],
+    lim:["Client apps, OS versions, and network paths during outages weren’t recorded"], src:["S0"]},
+  remote:{kick:"Outside the home", title:"Remote client", sub:"A device away from home reaching the homelab through a documented access path.", badges:["hist"], badgeLabels:["Conceptual"],
+    deps:["Internet","Tailscale or Cloudflare Tunnel"], lim:["Which services are reachable remotely isn’t established"], src:["S2","S3"]}
+};
+
+/* ---------- services ---------- */
+const CATS = ["Media","Photos","Files & collaboration","AI & experimentation","Dashboard","Networking & infrastructure"];
+const HOST = {mac:"Mac mini M1", dns:"Pi Zero 2 W", nas:"Pi-based NAS"};
+const NOFF = {lvl:"unv", lbl:"Not verified offline"};
+const SVC = [
+  {id:"jellyfin", n:"Jellyfin", m:"Jf", c:"#8a63d9", cat:"Media", host:"mac", proj:"jellyfin-stack",
+   p:"Streams the home media library to TVs, phones, and notebooks.",
+   role:"The workflow behind this whole project: used on phone, TV, and notebook during real internet outages.",
+   deps:["Mac mini (Docker)","Media library on the NAS share, as /data per earlier notes","Home LAN"],
+   off:{lvl:"rep", lbl:"Owner-reported working", txt:"Recurring successful use during real internet outages on phone, TV, and notebook, reported by the owner."},
+   lim:["Cold start, fresh login, uncached content, transcoding, and concurrent streams weren’t established","Outage dates and durations weren’t recorded"], src:["S0","S1","S3"]},
+  {id:"sonarr", n:"Sonarr", m:"So", c:"#2fa9d6", cat:"Media", host:"mac", proj:"arr-stack", p:"Tracks TV series and automates fetching new episodes.", role:"Part of the eight-container arr-stack.",
+   deps:["Prowlarr for indexers","qBittorrent for downloads","NAS storage (earlier notes)"], off:{...NOFF, txt:"Relies on remote indexers and metadata for new content. No offline test evidence."}, lim:["Current application integrations weren’t captured"], src:["S1","S3"]},
+  {id:"radarr", n:"Radarr", m:"Ra", c:"#d8a520", cat:"Media", host:"mac", proj:"arr-stack", p:"Tracks films and automates fetching them.", role:"Part of the arr-stack.",
+   deps:["Prowlarr","qBittorrent","NAS storage (earlier notes)"], off:{...NOFF, txt:"No offline test evidence."}, lim:["Current application integrations weren’t captured"], src:["S1","S3"]},
+  {id:"lidarr", n:"Lidarr", m:"Li", c:"#2f9e6b", cat:"Media", host:"mac", proj:"arr-stack", p:"Manages a music library and fetches new releases.", role:"Part of the arr-stack.",
+   deps:["Prowlarr","qBittorrent","NAS storage (earlier notes)"], off:{...NOFF, txt:"No offline test evidence."}, lim:["Current application integrations weren’t captured"], src:["S1"]},
+  {id:"prowlarr", n:"Prowlarr", m:"Pr", c:"#d3712f", cat:"Media", host:"mac", proj:"arr-stack", p:"Manages indexers for the other arr apps in one place.", role:"Feeds Sonarr, Radarr, and Lidarr.",
+   deps:["Internet indexers","FlareSolverr"], off:{...NOFF, txt:"Indexers are remote. No offline test evidence."}, lim:[], src:["S1"]},
+  {id:"jellyseerr", n:"Jellyseerr", m:"Js", c:"#7451c9", cat:"Media", host:"mac", proj:"arr-stack", p:"A request portal for new films and shows.", role:"Front door for media requests, handing off to the arr apps.",
+   deps:["Jellyfin","Sonarr and Radarr"], off:{...NOFF, txt:"No offline test evidence."}, lim:[], src:["S1"]},
+  {id:"qbittorrent", n:"qBittorrent", m:"qB", c:"#3672c4", cat:"Media", host:"mac", proj:"arr-stack", p:"Download client used by the arr apps.", role:"Routed through Gluetun in the June 2026 design notes.",
+   deps:["Gluetun VPN container","NAS storage"], off:{...NOFF, txt:"Downloads need the internet. No offline test evidence."}, lim:["Current VPN isolation isn’t proven by the notes"], src:["S1","S3"]},
+  {id:"flaresolverr", n:"FlareSolverr", m:"Fs", c:"#5d7c8b", cat:"Media", host:"mac", proj:"arr-stack", p:"A helper that lets indexers get past browser challenge pages.", role:"Supporting member of the arr-stack.",
+   deps:["Prowlarr"], off:{...NOFF, txt:"No offline test evidence."}, lim:[], src:["S1"]},
+  {id:"immich", n:"Immich", m:"Im", c:"#e0584f", cat:"Photos", host:"mac", proj:"immich", p:"A self-hosted photo and video library with search and machine-learning features.", role:"The photo service. A library copy to the NAS was recorded; the switch to it wasn’t verified.",
+   deps:["Immich server","PostgreSQL with vector extensions","Machine-learning container","Valkey cache","Application storage (location not confirmed)"],
+   off:{...NOFF, txt:"Browsing, uploads, search, and machine learning offline are not established."},
+   lim:["Checksum verification, cutover, restart, and post-cutover checks weren’t supplied","Database location and recoverable backups are unknown"], src:["S1","S6"]},
+  {id:"nextcloud", n:"Nextcloud", m:"Nc", c:"#1b84d6", cat:"Files & collaboration", host:"mac", proj:"nextcloud-stack", p:"Personal file storage, sync, and sharing.", role:"Self-hosted files, with its own database and cache.",
+   deps:["PostgreSQL 16","Redis 7","Persistent storage (location not established)"],
+   off:{...NOFF, txt:"Browsing, upload, sync, and fresh login offline are not established."}, lim:["Don’t assume its data lives on the NAS"], src:["S1"]},
+  {id:"librechat", n:"LibreChat", m:"LC", c:"#169a78", cat:"AI & experimentation", host:"mac", proj:"librechat", p:"A chat interface for AI models, used for experimentation.", role:"Six containers including a RAG API, vector database, Meilisearch, and MongoDB.",
+   deps:["MongoDB","Meilisearch","RAG API and vector database","Model providers (configuration unavailable)"],
+   off:{...NOFF, txt:"No local model or offline inference is established. Its presence doesn’t imply either."}, lim:["Provider and model configuration weren’t available"], src:["S1"]},
+  {id:"glance", n:"Glance", m:"Gl", c:"#73828c", cat:"Dashboard", host:"mac", proj:"glance", p:"A start-page dashboard for the homelab.", role:"Single-container dashboard.",
+   deps:["External widgets, where configured"], off:{...NOFF, txt:"Not established, including any external widgets."}, lim:[], src:["S1"]},
+  {id:"pihole", n:"Pi-hole", m:"Ph", c:"#a8323b", cat:"Networking & infrastructure", host:"dns", p:"Network-wide DNS filtering.", role:"Runs on its own Pi Zero 2 W, according to earlier notes.",
+   deps:["Clients configured to use it","Upstream resolvers"], off:{...NOFF, txt:"Pi-hole and local DNS behavior during an outage are not established."},
+   lim:["Current resolver path unknown","Old subnet differs from the October LAN"], src:["S2","S3"], hist:true},
+  {id:"tailscale", n:"Tailscale", m:"Ts", c:"#3c4a52", cat:"Networking & infrastructure", host:"mac", p:"Private remote access from outside the home.", role:"Host-level access layer; version and interface appear in the Oct 27 capture.",
+   deps:["Internet connection"], off:{...NOFF, txt:"Remote access travels over the internet. No outage result is claimed."}, lim:["ACLs and active peers weren’t inspected"], src:["S1","S2","S3"]},
+  {id:"cloudflare", n:"Cloudflare Tunnel", m:"Cf", c:"#d9701c", cat:"Networking & infrastructure", host:"mac", p:"Public access to selected services without opening router ports.", role:"cloudflared is enabled on the Mac mini.",
+   deps:["Internet connection"], off:{...NOFF, txt:"Public access travels over the internet. No outage result is claimed."}, lim:["Which services are exposed isn’t established"], src:["S1","S2","S3"]},
+  {id:"gluetun", n:"Gluetun", m:"Gt", c:"#4a8fa3", cat:"Networking & infrastructure", host:"mac", proj:"arr-stack", p:"A VPN client container that other containers route through.", role:"Carries qBittorrent’s traffic in the June 2026 design.",
+   deps:["VPN provider over the internet"], off:{...NOFF, txt:"VPN-backed traffic needs the internet. No offline test evidence."}, lim:["VPN failure behavior and leak prevention are unknown"], src:["S1","S3"]}
+];
+
+/* ---------- drawer ---------- */
+const drawer = document.getElementById("drawer"), scrim = document.getElementById("scrim");
+let lastFocus = null, onClose = null;
+function openDrawer(d){
+  document.getElementById("dKick").textContent = d.kick;
+  document.getElementById("dTitle").textContent = d.title;
+  document.getElementById("dSub").textContent = d.sub;
+  document.getElementById("dBadges").innerHTML = d.badges;
+  document.getElementById("dBody").innerHTML = d.body;
+  document.getElementById("dBody").scrollTop = 0;
+  (d.actions||[]).forEach(a => { const b = document.getElementById(a.id); if(b) b.addEventListener("click", a.fn); });
+  lastFocus = document.activeElement;
+  drawer.classList.add("open"); scrim.classList.add("open"); drawer.setAttribute("aria-hidden","false");
+  setTimeout(()=>document.getElementById("dClose").focus({preventScroll:true}), 50);
+}
+function closeDrawer(){
+  if(!drawer.classList.contains("open")) return;
+  drawer.classList.remove("open"); scrim.classList.remove("open"); drawer.setAttribute("aria-hidden","true");
+  if(onClose){ onClose(); onClose = null; }
+  if(lastFocus && document.contains(lastFocus)) lastFocus.focus({preventScroll:true});
+}
+document.getElementById("dClose").addEventListener("click", closeDrawer);
+scrim.addEventListener("click", closeDrawer);
+document.addEventListener("keydown", e => { if(e.key === "Escape") closeDrawer(); });
+
+const sec = (h, inner) => `<div class="dsec"><h4>${h}</h4>${inner}</div>`;
+const ul = (arr, cls="") => `<ul class="plain ${cls}">${arr.map(x=>`<li>${x}</li>`).join("")}</ul>`;
+
+function nodeDrawer(id){
+  const n = NODE_INFO[id]; if(!n) return;
+  let body = "";
+  if(n.hw) body += sec("Hardware and software", `<dl class="kv">${n.hw.map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>`);
+  if(n.capacity) body += sec("Storage capacity (unresolved)", `<div class="split2">
+      <div class="cap"><strong>≈1.4T</strong><span>Two-SSD mergerfs pool, May 17, 2026 notes</span></div>
+      <div class="neq" aria-label="does not equal">≠</div>
+      <div class="cap"><strong>458G</strong><span>Mounted share seen by the Mac mini, Oct 27 (308G used, 150G free)</span></div></div>
+      <p style="margin-top:12px;font-size:14px;color:var(--muted)">The material doesn’t explain the difference. No drive failure is inferred, and the figures aren’t added together.</p>`);
+  if(n.sw) body += sec("Software", `<div class="swlist">${n.sw.map(s=>`<span class="sw">${s}</span>`).join("")}</div>`);
+  body += sec("Depends on", ul(n.deps));
+  if(n.lim && n.lim.length) body += sec("Known limits", ul(n.lim, "warn"));
+  body += sec("Evidence", srcList(n.src));
+  const actions = [];
+  let act = "";
+  if(n.host){ act += `<button class="btn primary" id="dGoSvc">Explore services on this device</button>`; actions.push({id:"dGoSvc", fn:()=>{ closeDrawer(); setNodeFilter(n.host); document.getElementById("services").scrollIntoView({behavior: reduce?"auto":"smooth"}); }}); }
+  if(n.svc){ act += `<button class="btn" id="dGoOne">Open service details</button>`; actions.push({id:"dGoOne", fn:()=>svcDrawer(n.svc)}); }
+  if(act) body += `<div class="dactions">${act}</div>`;
+  const badges = n.badges.map((b,i)=>ev(b, n.badgeLabels ? n.badgeLabels[i] : undefined)).join("");
+  openDrawer({kick:n.kick, title:n.title, sub:n.sub, badges, body, actions});
+}
+
+function svcDrawer(id){
+  const s = SVC.find(x=>x.id===id); if(!s) return;
+  let body = sec("Role in this homelab", `<p>${s.role}</p>`);
+  body += sec("Runs on", `<dl class="kv"><dt>Device</dt><dd>${HOST[s.host]}</dd>${s.proj?`<dt>Compose project</dt><dd><span class="mono">${s.proj}</span></dd>`:""}</dl>`);
+  body += sec("Depends on", ul(s.deps));
+  body += sec("Without the internet", `<p style="margin-bottom:10px">${ev(s.off.lvl, s.off.lbl)}</p><p>${s.off.txt}</p>`);
+  if(s.lim.length) body += sec("Known limits", ul(s.lim,"warn"));
+  body += sec("Evidence", srcList(s.src));
+  body += `<div class="dactions"><button class="btn" id="dGoNode">Show ${HOST[s.host]} in the architecture</button></div>`;
+  const badges = (s.hist ? ev("hist") : ev("obs", "Listed running Oct 27")) + ev(s.off.lvl, s.off.lbl);
+  openDrawer({kick:s.cat, title:s.n, sub:s.p, badges, body, actions:[{id:"dGoNode", fn:()=>{ closeDrawer(); document.getElementById("architecture").scrollIntoView({behavior: reduce?"auto":"smooth"}); setTimeout(()=>selectNode(s.host), reduce?0:450); }}]});
+}
+
+/* ---------- explorer ---------- */
+const exSvg = buildTopo(document.getElementById("explorerHost"), "ex", {interactive:true, label:"Interactive homelab topology. Select a device for details."});
+function clearSel(){ exSvg.classList.remove("has-sel"); exSvg.querySelectorAll(".sel,.conn,.act").forEach(el=>el.classList.remove("sel","conn","act")); document.querySelectorAll("[data-pick]").forEach(b=>b.setAttribute("aria-pressed","false")); }
+function selectNode(id){
+  clearSel();
+  exSvg.classList.add("has-sel");
+  exSvg.querySelector(`[data-node="${id}"]`).classList.add("sel");
+  EDGES.forEach(e=>{ if(e.a===id || e.b===id){
+      exSvg.querySelector(`[data-edge="${e.id}"]`).classList.add("act");
+      exSvg.querySelectorAll(`.elbl[data-for="${e.id}"]`).forEach(l=>l.classList.add("act"));
+      exSvg.querySelector(`[data-node="${e.a===id?e.b:e.a}"]`).classList.add("conn"); }});
+  const pick = document.querySelector(`[data-pick="${id}"]`); if(pick) pick.setAttribute("aria-pressed","true");
+  onClose = ()=>{ clearSel(); document.body.classList.remove("ex-open"); };
+  document.body.classList.add("ex-open");
+  nodeDrawer(id);
+}
+exSvg.querySelectorAll(".node").forEach(g=>{
+  g.addEventListener("click", ()=>selectNode(g.dataset.node));
+  g.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); selectNode(g.dataset.node); }});
+});
+document.querySelectorAll("[data-pick]").forEach(b=>{ b.setAttribute("aria-pressed","false"); b.addEventListener("click", ()=>selectNode(b.dataset.pick)); });
+
+/* ---------- services gallery ---------- */
+const fBar = document.getElementById("svcFilters"), grid = document.getElementById("svcGrid");
+let curCat = "All", curNode = null;
+const catCount = c => c==="All" ? SVC.length : SVC.filter(s=>s.cat===c).length;
+fBar.innerHTML = ["All", ...CATS].map(c=>`<button class="chip" data-cat="${c}" aria-pressed="${c==="All"}">${c}<span class="n">${catCount(c)}</span></button>`).join("") + `<span class="nodefilter" id="nodeFilter"></span>`;
+grid.innerHTML = SVC.map(s=>`<button class="svc" data-svc="${s.id}" data-cat="${s.cat}" data-host="${s.host}">
+   <span class="mg" style="background:${s.c}" aria-hidden="true">${s.m}</span>
+   <span><span class="nm" style="display:block">${s.n}</span><span class="ct" style="display:block">${s.cat}</span>
+   <span class="meta"><span class="host">${ic(s.host==="dns"?"shield":"cpu",13)}${HOST[s.host]}</span>${ev(s.off.lvl, s.off.lvl==="rep"?"Reported working offline":"Not verified offline")}</span></span></button>`).join("");
+function applyFilters(){
+  grid.querySelectorAll(".svc").forEach(el=>{ el.hidden = !((curCat==="All"||el.dataset.cat===curCat) && (!curNode || el.dataset.host===curNode)); });
+  fBar.querySelectorAll("[data-cat]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.cat===curCat)));
+  const nf = document.getElementById("nodeFilter");
+  if(curNode){
+    const count = SVC.filter(s=>s.host===curNode).length;
+    nf.innerHTML = count ? `<button class="chip" aria-pressed="true" id="clearNode">On ${HOST[curNode]} ${ic("x",14)}</button>` : `<button class="chip" aria-pressed="true" id="clearNode">${HOST[curNode]} hosts storage, not services ${ic("x",14)}</button>`;
+    document.getElementById("clearNode").onclick = ()=>{ curNode=null; applyFilters(); };
+  } else nf.innerHTML = "";
+}
+function setNodeFilter(n){ curNode = n; curCat = "All"; applyFilters(); }
+fBar.addEventListener("click", e=>{ const b = e.target.closest("[data-cat]"); if(!b) return; curCat = b.dataset.cat; applyFilters(); });
+grid.addEventListener("click", e=>{ const b = e.target.closest("[data-svc]"); if(b) svcDrawer(b.dataset.svc); });
+
+/* ---------- offline simulation ---------- */
+const simSvg = buildTopo(document.getElementById("simHost"), "sim", {sim:true, label:"Offline simulation topology"});
+simSvg.dataset.net = "on";
+const sw = document.getElementById("netSwitch"), knob = document.getElementById("swKnob"), swState = document.getElementById("swState"), status = document.getElementById("simStatus"), motto = document.getElementById("motto");
+const pills = arr => `<ul>${arr.map(x=>`<li>${x}</li>`).join("")}</ul>`;
+function renderStatus(on){
+  if(on){
+    status.innerHTML = `
+      <div><h4><span class="d" style="background:var(--cyan)"></span>Local paths</h4>${pills(["Clients ↔ Home LAN","LAN ↔ Mac mini","Mac mini ↔ NAS"])}</div>
+      <div><h4><span class="d" style="background:var(--muted)"></span>Paths through the internet</h4>${pills(["Tailscale remote access","Cloudflare Tunnel","Indexers and downloads","Remote metadata, subtitles","AI providers"])}
+      <p>With the connection up, the homelab uses both. Switch it off to see which side remains.</p></div>`;
+  } else {
+    status.innerHTML = `
+      <div><h4><span class="d" style="background:var(--green)"></span>Reported working during real outages</h4>${pills(["Jellyfin on phone","Jellyfin on TV","Jellyfin on notebook"])}
+      <p>Owner-reported. Login state, playback mode, and media location weren’t recorded.</p></div>
+      <div><h4><span class="d" style="background:var(--amber)"></span>Not verified offline</h4>${pills(["Immich","Nextcloud","Pi-hole DNS","Glance","LibreChat","Arr stack"])}
+      <p>No result either way. LibreChat has no established local model, so no offline inference is claimed.</p></div>
+      <div><h4><span class="d" style="background:var(--rose)"></span>Cut in this simulation</h4>${pills(["Tailscale remote access","Cloudflare Tunnel public access","Downloads and indexers"])}
+      <p>These paths travel over the internet. No outage result is recorded for them.</p></div>`;
+  }
+}
+function setNet(on){
+  simSvg.dataset.net = on ? "on" : "off";
+  sw.setAttribute("aria-checked", String(on));
+  knob.textContent = on ? "ON" : "OFF";
+  swState.textContent = on ? "Connected. All documented paths shown." : "Disconnected (simulated). Local paths stay up.";
+  motto.classList.toggle("lit", !on);
+  renderStatus(on);
+}
+sw.addEventListener("click", ()=>setNet(sw.getAttribute("aria-checked")!=="true"));
+setNet(true);
+
+/* ---------- data flows ---------- */
+const FLOWS = [
+  {id:"movie", icon:"film", t:"Watch a movie", s:"Jellyfin, media share",
+   routes:[["cl_rt","rt_mac","mac_nas"]], nodes:["clients","router","mac","nas"], nasUnv:false, nasLbl:"",
+   steps:[
+     ["A TV, phone, or notebook opens Jellyfin on the home network.", ev("rep","Owner-reported, incl. outages")],
+     ["The home LAN carries the request to the Mac mini.", ev("obs","LAN routes observed")],
+     ["The Jellyfin container on the Mac mini serves the stream.", ev("obs","Container listed running")],
+     ["Media files are read from the NAS share mounted over CIFS.", ev("hist","Mount observed; /data mapping from notes")]],
+   note:"This is the one workflow reported working during real outages. Direct play versus transcoding, and where the played media lived during those outages, weren’t recorded."},
+  {id:"files", icon:"folder", t:"Access personal files", s:"Nextcloud, storage dependencies",
+   routes:[["cl_rt","rt_mac","mac_nas"]], nodes:["clients","router","mac","nas"], nasUnv:true, nasLbl:"Storage location not established",
+   steps:[
+     ["A client opens Nextcloud on the home network.", ev("hist","Expected use")],
+     ["The home LAN carries the request to the Mac mini.", ev("obs","LAN routes observed")],
+     ["Nextcloud runs with PostgreSQL 16 and Redis 7 alongside it.", ev("obs","Three containers listed")],
+     ["Files are read from persistent storage, whose location isn’t confirmed.", ev("unv","Don’t assume the NAS")]],
+   note:"The repository warns against assuming all application data lives on the NAS. Offline browsing, upload, sync, and fresh login are not established."},
+  {id:"photos", icon:"image", t:"Browse photos", s:"Immich, application storage",
+   routes:[["cl_rt","rt_mac","mac_nas"]], nodes:["clients","router","mac","nas"], nasUnv:true, nasLbl:"Copy to NAS recorded; cutover not verified",
+   steps:[
+     ["A client opens Immich on the home network.", ev("hist","Expected use")],
+     ["The home LAN carries the request to the Mac mini.", ev("obs","LAN routes observed")],
+     ["Immich serves the library, with PostgreSQL (vector), machine learning, and Valkey.", ev("obs","Four containers listed")],
+     ["Photos come from application storage. A copy to the NAS succeeded; the switch to it wasn’t verified.", ev("unv","Migration cutover unverified")]],
+   note:"A successful rsync copy and a clean size/time dry run were recorded, but no checksum pass, restart against the new location, or post-cutover check."},
+  {id:"remote", icon:"globe", t:"Access from outside home", s:"Tailscale or Cloudflare Tunnel",
+   routes:[["rm_in","in_ts","ts_mac"],["rm_in","in_cf","cf_mac"]], nodes:["remote","internet","tailscale","cloudflare","mac"], nasUnv:false, nasLbl:"",
+   steps:[
+     ["A device away from home starts a connection.", ev("hist","Conceptual")],
+     ["The request crosses the public internet.", ev("hist","External path")],
+     ["It enters through Tailscale (private) or Cloudflare Tunnel (public).", ev("hist","Documented in older notes")],
+     ["It reaches a service on the Mac mini.", ev("unv","Exposed services not established")]],
+   note:"Access policies, tunnel ingress rules, and which services are actually reachable weren’t inspected. Both paths depend on the home internet connection."}
+];
+const flSvg = buildTopo(document.getElementById("flowHost"), "fl", {flow:true, label:"Data flow diagram"});
+const tabs = document.getElementById("flowTabs"), stepsEl = document.getElementById("flowSteps"), noteEl = document.getElementById("flowNote");
+tabs.innerHTML = FLOWS.map((f,i)=>`<button class="ftab" role="tab" id="tab-${f.id}" aria-controls="flowPanel" aria-selected="${i===0}" tabindex="${i===0?0:-1}" data-flow="${f.id}"><span class="ic">${ic(f.icon,22)}</span><span><b>${f.t}</b><small>${f.s}</small></span></button>`).join("");
+let raf = null, curFlow = null;
+function showFlow(id){
+  const f = FLOWS.find(x=>x.id===id); curFlow = f;
+  tabs.querySelectorAll(".ftab").forEach(t=>{ const on = t.dataset.flow===id; t.setAttribute("aria-selected", String(on)); t.tabIndex = on?0:-1; });
+  document.getElementById("flowPanel").setAttribute("aria-labelledby", "tab-"+id);
+  flSvg.querySelectorAll(".fon,.funv").forEach(el=>el.classList.remove("fon","funv"));
+  const edgeIds = new Set(f.routes.flat());
+  edgeIds.forEach(e=>{ const g = flSvg.querySelector(`[data-edge="${e}"]`); g.classList.add("fon"); if(e==="mac_nas" && f.nasUnv) g.classList.add("funv");
+    flSvg.querySelectorAll(`.elbl[data-for="${e}"]`).forEach(l=>{ if(!(e==="mac_nas" && f.nasUnv)) l.classList.add("fon"); }); });
+  f.nodes.forEach(n=>flSvg.querySelector(`[data-node="${n}"]`).classList.add("fon"));
+  const fl = document.getElementById("fl-flowlbl"); fl.textContent = f.nasLbl;
+  stepsEl.innerHTML = f.steps.map(([t,b])=>`<li>${t}<br>${b}</li>`).join("");
+  noteEl.textContent = f.note;
+  animateFlow(f);
+}
+function animateFlow(f){
+  if(raf) cancelAnimationFrame(raf);
+  const pkt = document.getElementById("fl-pkt");
+  const lis = stepsEl.querySelectorAll("li");
+  if(reduce){ pkt.setAttribute("cx",-20); lis.forEach(l=>l.classList.add("on")); return; }
+  let ri=0, ei=0, t0=null; const dur=900, pause=700;
+  function frame(ts){
+    if(t0===null) t0=ts;
+    const route = f.routes[ri];
+    const el = ts - t0;
+    if(ei >= route.length){
+      pkt.setAttribute("cx",-20);
+      if(el > pause){ ei=0; ri=(ri+1)%f.routes.length; t0=ts; }
+    } else {
+      const path = document.getElementById("fl-e-"+route[ei]);
+      const p = Math.min(el/dur,1), L = path.getTotalLength(), pt = path.getPointAtLength(L*p);
+      pkt.setAttribute("cx",pt.x); pkt.setAttribute("cy",pt.y);
+      const stepIdx = f.id==="remote" ? Math.min(ei+1,3) : ei+1;
+      lis.forEach((l,i)=>l.classList.toggle("on", i<=stepIdx));
+      if(p>=1){ ei++; t0=ts; }
+    }
+    raf = requestAnimationFrame(frame);
+  }
+  raf = requestAnimationFrame(frame);
+}
+tabs.addEventListener("click", e=>{ const t = e.target.closest(".ftab"); if(t) showFlow(t.dataset.flow); });
+tabs.addEventListener("keydown", e=>{
+  const list = [...tabs.querySelectorAll(".ftab")], i = list.indexOf(document.activeElement); if(i<0) return;
+  let j = null;
+  if(["ArrowDown","ArrowRight"].includes(e.key)) j=(i+1)%list.length;
+  if(["ArrowUp","ArrowLeft"].includes(e.key)) j=(i-1+list.length)%list.length;
+  if(j!==null){ e.preventDefault(); list[j].focus(); showFlow(list[j].dataset.flow); }
+});
+showFlow("movie");
+
+/* ---------- decisions ---------- */
+const PRINC = [
+  ["Local-first operation","The home network is the primary environment for hosted services. Jellyfin, the workflow reported during outages, is served from inside it.","Offline capability varies by service and workflow. Only Jellyfin has reported outage use; everything else is unmeasured, which isn’t the same as failing."],
+  ["Separation of responsibilities","Compute, storage, and DNS occupy separate devices, so each piece has one job and can be reasoned about on its own.","Separate storage introduces a network dependency. The DNS Pi is one more component whose current availability hasn’t been checked."],
+  ["Ownership and control","Applications and data run on hardware the owner manages, rather than on someone else’s cloud.","Self-hosting creates maintenance and recovery responsibilities. No restore from backup has been demonstrated yet."],
+  ["Modularity","Six Docker Compose projects keep stacks apart, each on its own bridge network.","Mutable image tags and omitted Compose files mean the setup can’t be rebuilt from the repository alone. Network isolation is unverified."],
+  ["Remote access as a separate layer","Tailscale and Cloudflare Tunnel sit apart from what works locally, so losing them doesn’t define the home experience.","Access policies, exposed services, and outage behavior weren’t inspected. Wildcard port bindings are flagged for review."],
+  ["Experimentation","Room to try new tools: an AI chat stack with retrieval, machine-learning photo search, media automation.","A single 8 GB-class host bounds what runs at once and isn’t high availability. Its Linux filesystem was 85% used in the snapshot."]
+];
+document.getElementById("ledger").innerHTML = PRINC.map(([t,g,c])=>`<div class="lrow"><h3>${t}</h3><div class="gain"><p class="lab">What it gives</p><p>${g}</p></div><div class="cost"><p class="lab">What it costs</p><p>${c}</p></div></div>`).join("");
+
+/* ---------- inventory ---------- */
+const PROJ = [
+  ["arr-stack",8,"qBittorrent, Gluetun, FlareSolverr, Sonarr, Prowlarr, Lidarr, Radarr, Jellyseerr"],
+  ["glance",1,"Glance"],
+  ["immich",4,"Immich server, PostgreSQL with vector extensions, machine learning, Valkey"],
+  ["jellyfin-stack",1,"Jellyfin"],
+  ["librechat",6,"LibreChat, admin panel, RAG API, vector database, Meilisearch, MongoDB"],
+  ["nextcloud-stack",3,"Nextcloud, PostgreSQL 16, Redis 7"]
+];
+const row = (cells) => `<tr>${cells.map(c=>`<td>${c}</td>`).join("")}</tr>`;
+const table = (heads, rows) => `<div class="tbl"><table><thead><tr>${heads.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div>`;
+const INV = [
+  {icon:"cpu", t:"Hardware nodes", sum:"Mac mini M1, Pi 5-class NAS, Pi Zero 2 W", open:true, html: table(["Node","Hardware","Evidence"],[
+    row(["Mac mini M1","<span class=mono>Macmini9,1</span>, ARM64, eight CPU cores, 7.4 GiB reported (8 GB-class)", ev("obs","S1, Oct 27")]),
+    row(["Pi-based NAS","Raspberry Pi 5-class, four Cortex-A76 cores, 8 GB RAM, 64 GB microSD", ev("hist","S2 notes")]),
+    row(["Pi Zero 2 W","Raspberry Pi Zero 2 W", ev("hist","S2/S3; state unverified")])].join(""))},
+  {icon:"layers", t:"Operating systems", sum:"Fedora Asahi, OpenMediaVault, Pi OS Lite", html: table(["Node","System","Evidence"],[
+    row(["Mac mini M1","Fedora Asahi Remix 42; kernel <span class=mono>6.19.14-400.asahi.fc42</span>; Docker 29.5.3", ev("obs","S1")]),
+    row(["Pi-based NAS","Debian 13 with OpenMediaVault", ev("hist","S2")]),
+    row(["Pi Zero 2 W","Raspberry Pi OS Lite with Pi-hole", ev("hist","S2/S3")])].join("")) + `<p class="hint" style="margin-top:12px">Recorded values, not installation recommendations.</p>`},
+  {icon:"network", t:"Docker projects and containers", sum:"6 projects, 23 containers running on Oct 27", html: table(["Project","Containers","Observed members"],
+    PROJ.map(([p,n,m])=>`<tr><td><span class="mono">${p}</span></td><td class="num">${n}</td><td>${m}</td></tr>`).join("") + `<tr class="total"><td>Total</td><td class="num">23</td><td>All listed as running in S1</td></tr>`) +
+    `<p class="hint" style="margin-top:12px">Bazarr appears in older notes but not in the Oct 27 list, so it isn’t shown as deployed. Several image tags are mutable. Uptime or “healthy” labels don’t establish usability or offline operation.</p>`},
+  {icon:"hdd", t:"Storage", sum:"Two unreconciled capacity figures", html: `
+    <div class="split2" style="margin-bottom:16px">
+      <div class="cap"><strong>≈1.4T</strong><span>Two-SSD mergerfs pool, described May 17, 2026 (S4)</span></div>
+      <div class="neq" aria-label="does not equal">≠</div>
+      <div class="cap"><strong>458G</strong><span>CIFS share seen by the Mac mini, Oct 27, 2026 (S1): 308G used, 150G available</span></div>
+    </div>` + table(["Item","Value","Evidence"],[
+    row(["Mac mini internal disk","Apple SSD, 233.8G device; 143G Btrfs Linux filesystem", ev("obs","S1")]),
+    row(["Linux disk usage","119G used, 23G available, 85%", ev("obs","Snapshot only")]),
+    row(["NAS disks described","500 GB SSD, 1 TB SSD, 2 TB HDD", ev("hist","S2")]),
+    row(["2 TB disk","Not yet initialised or mounted in May", ev("hist","S4")]),
+    row(["NAS share on Mac mini","CIFS, SMB 3.0", ev("obs","S1, client side")])].join("")) +
+    `<p class="hint" style="margin-top:12px">These figures are not combined into a total. Attached raw capacity doesn’t establish mounted, protected, or backed-up capacity.</p>`},
+  {icon:"router", t:"Network architecture", sum:"LAN routes, bridge networks, DNS", html: table(["Layer","Observed or documented","Unknown"],[
+    row(["LAN routing","Ethernet and Wi-Fi routes to the LAN gateway; Ethernet preferred","Failover behavior; router/DHCP config"]),
+    row(["NAS transport","Share mounted from a LAN address","NAS-side export and pool config"]),
+    row(["Docker networks","Separate bridge network per project","Effective isolation and firewall rules"]),
+    row(["DNS","Pi-hole documented in older notes; no resolver output in S1","Current client resolver, local records, fallback"])].join("")) + `<p class="hint" style="margin-top:12px">Addresses, port mappings, SSIDs, and hostnames are deliberately omitted.</p>`},
+  {icon:"key", t:"Access layers", sum:"Local, private remote, public", html: table(["Layer","Observed or documented","Unknown"],[
+    row(["Local web services","Published locally for Jellyfin, Immich, Nextcloud, Glance, LibreChat","Authentication and reachable scope"]),
+    row(["Private remote","Tailscale version and interface in S1; role in S2/S3","ACLs, active peers, outage behavior"]),
+    row(["Public","cloudflared enabled in S1; selected-service exposure in S2/S3","Current ingress, identity controls, public services"])].join("")) + `<p class="hint" style="margin-top:12px">Wildcard port bindings in S1 are a reason to review exposure, not proof that services are internet-accessible.</p>`}
+];
+document.getElementById("inv").innerHTML = INV.map(g=>`<details${g.open?" open":""}><summary><span class="ic">${ic(g.icon,22)}</span><b>${g.t}</b><span class="sum">${g.sum}</span><span class="chev">${ic("chev",20)}</span></summary><div class="inner">${g.html}</div></details>`).join("");
+
+/* ---------- open questions ---------- */
+const OQ = [
+  ["NAS capacity reconciliation","An older note describes a roughly 1.4T pool; the October capture shows a 458G share. Nothing explains the gap.","Confirm what the NAS exports today and the role of the 1 TB and 2 TB drives."],
+  ["Immich storage migration","The library copy succeeded and a size/time dry run was clean. No checksum pass, cutover, or post-cutover check was supplied.","Finish checksum verification, switch Immich to the new location, restart, and check."],
+  ["Backup and restore validation","A backup filename or directory isn’t a recoverable backup. No restore has been demonstrated.","Perform a restore and record the result, failures included."],
+  ["NAS failure recovery","An automount and a recovery timer exist. Boot order, mount-failure handling, and power loss weren’t tested.","Test app startup with the NAS unavailable, under an approved recovery plan."],
+  ["DNS behavior during outages","Pi-hole’s current location and the clients’ resolver path are unknown.","Confirm how clients reach Pi-hole and which local URLs work during an outage."],
+  ["Service-by-service offline tests","Only Jellyfin has reported outage use. Every other workflow is unmeasured.","Fill in the repository’s blank offline test record during a future outage."],
+  ["Security and remote exposure review","Wildcard bindings, tunnel ingress, Tailscale ACLs, and authentication weren’t inspected.","Work through the publication checklist. No certification is claimed."]
+];
+document.getElementById("openQ").innerHTML = OQ.map(([t,k,n])=>`<article class="oq"><div>${ev("unv","Open")}</div><h3>${t}</h3><p>${k}</p><p class="next"><span>Next step:</span> ${n}</p></article>`).join("");
+
+/* center wide diagrams on narrow screens */
+function centerScroll(){ ["explorerHost","simHost","flowHost"].forEach(id=>{ const h=document.getElementById(id); if(h.scrollWidth>h.clientWidth) h.scrollLeft=(h.scrollWidth-h.clientWidth)*0.55; }); }
+centerScroll();
+
+/* ---------- nav highlight ---------- */
+const links = [...document.querySelectorAll(".nav nav a")];
+if("IntersectionObserver" in window){
+  const io = new IntersectionObserver(es=>{ es.forEach(en=>{ if(en.isIntersecting){ links.forEach(a=>a.classList.toggle("on", a.getAttribute("href")==="#"+en.target.id)); }}); }, {rootMargin:"-45% 0px -50% 0px"});
+  document.querySelectorAll("section.block").forEach(s=>io.observe(s));
+}
+})();
+</script>
+</body>
+</html>
