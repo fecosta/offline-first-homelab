@@ -1,0 +1,13 @@
+
+<!-- saved from url=(0084)file:///Users/felipecosta/projects/code/repos/offline-first-homelab/pages/image.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252"></head><body><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="1.7">
+  <style>
+    svg { stroke: #1f2937; }
+    @media (prefers-color-scheme: dark) { svg { stroke: #f3f4f6; } }
+  </style>
+  <circle cx="12" cy="6" r="2.4"></circle>
+  <circle cx="5.5" cy="17" r="2.4"></circle>
+  <circle cx="18.5" cy="17" r="2.4"></circle>
+  <path d="M11 8.2 6.6 14.9M13 8.2l4.4 6.7M8 17h8"></path>
+</svg>
+</body></html>
